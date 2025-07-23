@@ -11,6 +11,17 @@ export class BookingsService {
   ) {}
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
+    const existingBooking = await this.bookingModel.findOne({
+      date: createBookingDto.date,
+      time: createBookingDto.time,
+      'barber.id': createBookingDto.barber.id,
+      status: { $ne: 'cancelled' }
+    }).exec();
+
+    if (existingBooking) {
+      throw new Error(`Ya existe una reserva para ${createBookingDto.barber.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
+    }
+
     const createdBooking = new this.bookingModel(createBookingDto);
     return createdBooking.save();
   }

@@ -4,8 +4,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Configurar prefijo global /api
-  app.setGlobalPrefix('api');
+  // Configurar prefijo global /api para todas las rutas excepto la raíz
+  app.setGlobalPrefix('api', {
+    exclude: ['/', '/health']
+  });
   
   // Configuración CORS más permisiva para producción
   const corsOptions = {

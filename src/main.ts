@@ -10,7 +10,7 @@ async function bootstrap() {
   // Configuración CORS más permisiva para producción
   const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://booking-app-d3v.netlify.app', 'http://localhost:5500', 'http://127.0.0.1:5500']
+      ? ['https://bookingappservice.netlify.app/', 'http://localhost:5500', 'http://127.0.0.1:5500']
       : true, // En desarrollo permite cualquier origen
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,

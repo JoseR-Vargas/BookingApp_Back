@@ -10,7 +10,8 @@ import {
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
-@Controller('api/bookings')
+// Use 'bookings' because a global prefix 'api' is set in main.ts
+@Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 

@@ -26,8 +26,8 @@ export class BookingsController {
   }
 
   @Post('availability')
-  checkAvailability(@Body() body: { date: string; time: string; barberId: string }) {
-    return this.bookingsService.checkAvailability(body.date, body.time, body.barberId);
+  checkAvailability(@Body() body: { date: string; time: string; professionalId: string }) {
+    return this.bookingsService.checkAvailability(body.date, body.time, body.professionalId);
   }
 
   @Get()

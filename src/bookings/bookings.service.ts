@@ -14,12 +14,12 @@ export class BookingsService {
     const existingBooking = await this.bookingModel.findOne({
       date: createBookingDto.date,
       time: createBookingDto.time,
-      'barber.id': createBookingDto.barber.id,
+      'professional.id': createBookingDto.professional.id,
       status: { $ne: 'cancelled' }
     }).exec();
 
     if (existingBooking) {
-      throw new Error(`Ya existe una reserva para ${createBookingDto.barber.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
+      throw new Error(`Ya existe una reserva para ${createBookingDto.professional.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
     }
 
     const createdBooking = new this.bookingModel(createBookingDto);
@@ -44,11 +44,11 @@ export class BookingsService {
     return this.bookingModel.findByIdAndDelete(id).exec();
   }
 
-  async checkAvailability(date: string, time: string, barberId: string): Promise<{ available: boolean }> {
+  async checkAvailability(date: string, time: string, professionalId: string): Promise<{ available: boolean }> {
     const existingBooking = await this.bookingModel.findOne({
       date,
       time,
-      'barber.id': barberId,
+      'professional.id': professionalId,
     }).exec();
 
     return { available: !existingBooking };

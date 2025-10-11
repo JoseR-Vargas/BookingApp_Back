@@ -42,7 +42,7 @@ export class Booking extends Document {
     },
     required: true
   })
-  barber: {
+  professional: {
     id: string;
     name: string;
   };

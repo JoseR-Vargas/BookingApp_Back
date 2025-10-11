@@ -13,7 +13,7 @@ export class CreateBookingDto {
     duration: number;
   };
 
-  barber: {
+  professional: {
     id: string;
     name: string;
   };

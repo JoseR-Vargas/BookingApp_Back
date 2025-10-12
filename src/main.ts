@@ -26,10 +26,5 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  
-  console.log(`🚀 Backend corriendo en puerto ${port}`);
-  console.log(`📊 API disponible en /api/bookings`);
-  console.log(`🌐 CORS configurado para producción`);
-  console.log(`🔧 Modo:`, process.env.NODE_ENV || 'development');
-}
+  }
 bootstrap();

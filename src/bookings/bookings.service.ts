@@ -11,6 +11,7 @@ export class BookingsService {
   ) {}
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
+    // Verificación mejorada con múltiples criterios para evitar duplicados
     const existingBooking = await this.bookingModel.findOne({
       date: createBookingDto.date,
       time: createBookingDto.time,
@@ -20,6 +21,18 @@ export class BookingsService {
 
     if (existingBooking) {
       throw new Error(`Ya existe una reserva para ${createBookingDto.professional.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
+    }
+
+    // Verificar duplicados por cliente en el mismo horario (protección adicional)
+    const duplicateClientBooking = await this.bookingModel.findOne({
+      date: createBookingDto.date,
+      time: createBookingDto.time,
+      'client.email': createBookingDto.client.email,
+      status: { $ne: 'cancelled' }
+    }).exec();
+
+    if (duplicateClientBooking) {
+      throw new Error(`Ya tienes una reserva programada para el ${createBookingDto.date} a las ${createBookingDto.time}`);
     }
 
     const createdBooking = new this.bookingModel(createBookingDto);

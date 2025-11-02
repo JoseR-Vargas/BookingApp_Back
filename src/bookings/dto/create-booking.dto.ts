@@ -1,7 +1,7 @@
 export class CreateBookingDto {
   client: {
     name: string;
-    id: string;
+    id?: string;
     email: string;
     phone: string;
   };

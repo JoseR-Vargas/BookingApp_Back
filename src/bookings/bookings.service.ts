@@ -3,40 +3,65 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Booking } from './schemas/booking.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { BookingsGateway } from './bookings.gateway';
 
 @Injectable()
 export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private bookingModel: Model<Booking>,
+    private bookingsGateway: BookingsGateway,
   ) {}
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
-    // Verificación mejorada con múltiples criterios para evitar duplicados
-    const existingBooking = await this.bookingModel.findOne({
-      date: createBookingDto.date,
-      time: createBookingDto.time,
-      'professional.id': createBookingDto.professional.id,
-      status: { $ne: 'cancelled' }
-    }).exec();
+    try {
+      // Validar datos requeridos
+      if (!createBookingDto.date || !createBookingDto.time) {
+        throw new Error('Fecha y hora son requeridas');
+      }
+      if (!createBookingDto.professional || !createBookingDto.professional.id) {
+        throw new Error('Profesional es requerido');
+      }
+      if (!createBookingDto.client || !createBookingDto.client.email) {
+        throw new Error('Datos del cliente son requeridos');
+      }
 
-    if (existingBooking) {
-      throw new Error(`Ya existe una reserva para ${createBookingDto.professional.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
+      // Verificación mejorada con múltiples criterios para evitar duplicados
+      const existingBooking = await this.bookingModel.findOne({
+        date: createBookingDto.date,
+        time: createBookingDto.time,
+        'professional.id': createBookingDto.professional.id,
+        status: { $ne: 'cancelled' }
+      }).exec();
+
+      if (existingBooking) {
+        throw new Error(`Ya existe una reserva para ${createBookingDto.professional.name} el ${createBookingDto.date} a las ${createBookingDto.time}`);
+      }
+
+      // NO validamos duplicados por cliente porque un cliente puede reservar
+      // con diferentes profesionales en el mismo horario
+      // (ej: puede reservar con Cesar y con Random a la misma hora)
+
+      const createdBooking = new this.bookingModel(createBookingDto);
+      const savedBooking = await createdBooking.save();
+      
+      // Emitir evento WebSocket cuando se crea una nueva reserva (no crítico si falla)
+      try {
+        this.bookingsGateway.notifyNewBooking(savedBooking);
+      } catch (wsError) {
+        // Si falla WebSocket, no afecta la creación de la reserva
+        console.error('Error al notificar por WebSocket (no crítico):', wsError);
+      }
+      
+      return savedBooking;
+    } catch (error) {
+      // Si es un error de validación de Mongoose, devolver mensaje más claro
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map((e: any) => e.message).join(', ');
+        throw new Error(`Error de validación: ${messages}`);
+      }
+      // Re-lanzar otros errores
+      throw error;
     }
-
-    // Verificar duplicados por cliente en el mismo horario (protección adicional)
-    const duplicateClientBooking = await this.bookingModel.findOne({
-      date: createBookingDto.date,
-      time: createBookingDto.time,
-      'client.email': createBookingDto.client.email,
-      status: { $ne: 'cancelled' }
-    }).exec();
-
-    if (duplicateClientBooking) {
-      throw new Error(`Ya tienes una reserva programada para el ${createBookingDto.date} a las ${createBookingDto.time}`);
-    }
-
-    const createdBooking = new this.bookingModel(createBookingDto);
-    return createdBooking.save();
   }
 
   async findAll(): Promise<Booking[]> {

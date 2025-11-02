@@ -6,7 +6,7 @@ export class Booking extends Document {
   @Prop({
     type: {
       name: { type: String, required: true },
-      id: { type: String, required: true },
+      id: { type: String, required: false },
       email: { type: String, required: true },
       phone: { type: String, required: true }
     },
@@ -14,7 +14,7 @@ export class Booking extends Document {
   })
   client: {
     name: string;
-    id: string;
+    id?: string;
     email: string;
     phone: string;
   };

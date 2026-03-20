@@ -12,7 +12,7 @@ async function bootstrap() {
   // Configuración CORS más permisiva para producción
   const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://bookingsjr.netlify.app' ]
+      ? ['https://booking-app-one-theta.vercel.app' ]
       : true, // En desarrollo permite cualquier origen
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,

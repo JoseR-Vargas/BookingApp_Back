@@ -9,7 +9,7 @@ import { Server } from 'socket.io';
 @WebSocketGateway({
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://bookingsjr.netlify.app']
+      ? ['https://booking-app-one-theta.vercel.app/']
       : true,
     credentials: true,
   },

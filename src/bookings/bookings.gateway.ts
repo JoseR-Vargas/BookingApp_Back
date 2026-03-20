@@ -9,7 +9,7 @@ import { Server } from 'socket.io';
 @WebSocketGateway({
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://bigligasbeautybarberstudio.netlify.app']
+      ? ['https://booking-app-back.vercel.app']
       : true,
     credentials: true,
   },

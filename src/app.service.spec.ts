@@ -24,7 +24,7 @@ describe('AppService', () => {
     it('debería retornar la información de la API', () => {
       const result = service.getApiInfo();
       expect(result).toEqual({
-        message: 'Barbería Premium API',
+        message: 'BookingApp API',
         version: '1.0.0',
         status: 'running',
         endpoints: {
@@ -32,7 +32,7 @@ describe('AppService', () => {
           statistics: '/api/bookings/statistics',
           health: '/health',
         },
-        documentation: 'API REST para sistema de reservas de barbería',
+        documentation: 'API REST para sistema de reservas de citas',
       });
     });
 

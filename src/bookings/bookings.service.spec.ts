@@ -4,6 +4,7 @@ import { BookingsService } from './bookings.service';
 import { BookingsGateway } from './bookings.gateway';
 import { Booking } from './schemas/booking.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { EmailService } from '../email/email.service';
 
 const mockBookingDto: CreateBookingDto = {
   client: {
@@ -56,6 +57,10 @@ describe('BookingsService', () => {
     notifyNewBooking: jest.fn(),
   };
 
+  const mockEmailService = {
+    sendBookingConfirmation: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +72,10 @@ describe('BookingsService', () => {
         {
           provide: BookingsGateway,
           useValue: mockGateway,
+        },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
         },
       ],
     }).compile();

@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import { Booking } from './schemas/booking.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingsGateway } from './bookings.gateway';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private bookingModel: Model<Booking>,
     private bookingsGateway: BookingsGateway,
+    private emailService: EmailService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
@@ -51,7 +53,14 @@ export class BookingsService {
         // Si falla WebSocket, no afecta la creación de la reserva
         console.error('Error al notificar por WebSocket (no crítico):', wsError);
       }
-      
+
+      // Enviar email de confirmación al cliente (no crítico si falla)
+      try {
+        await this.emailService.sendBookingConfirmation(savedBooking);
+      } catch (emailError) {
+        console.error('Error al enviar email de confirmación (no crítico):', emailError);
+      }
+
       return savedBooking;
     } catch (error) {
       // Si es un error de validación de Mongoose, devolver mensaje más claro

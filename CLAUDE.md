@@ -1,6 +1,6 @@
 # Project Guidelines — Booking Backend
 
-API REST para el sistema de reservas de Big Ligas Barber Studio. Backend en NestJS 10 con MongoDB (Mongoose) y WebSockets (Socket.IO).
+API REST para el sistema de reservas de BookingApp. Backend en NestJS 10 con MongoDB (Mongoose) y WebSockets (Socket.IO).
 
 ## Architecture
 

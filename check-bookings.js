@@ -2,7 +2,7 @@ const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
 async function check() {
-  const client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017/booking-app');
+  const client = new MongoClient(process.env.MONGO_URI || 'mongodb://localhost:27017/booking-app');
   await client.connect();
   console.log('✅ Conectado a MongoDB');
   
@@ -19,7 +19,7 @@ async function check() {
     if (booking.barber) console.log('Barber:', booking.barber);
     if (booking.professional) console.log('Professional:', booking.professional);
   });
-  
+  s
   await client.close();
 }
 

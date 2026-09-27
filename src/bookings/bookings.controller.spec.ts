@@ -220,6 +220,26 @@ describe('BookingsController', () => {
 
       expect(result).toBeNull();
     });
+
+    it('debería devolver 400 si el nuevo horario ya está ocupado', async () => {
+      mockBookingsService.update.mockRejectedValue(
+        new Error('Ya existe una reserva para Cesar Viloria el 2026-03-25 a las 11:00'),
+      );
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      await expect(
+        controller.update('507f1f77bcf86cd799439011', mockBookingDto),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+    });
+
+    it('debería devolver 500 ante errores inesperados', async () => {
+      mockBookingsService.update.mockRejectedValue(new Error('conexión perdida'));
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      await expect(
+        controller.update('507f1f77bcf86cd799439011', mockBookingDto),
+      ).rejects.toMatchObject({ status: HttpStatus.INTERNAL_SERVER_ERROR });
+    });
   });
 
   describe('remove', () => {

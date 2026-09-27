@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import { buildActiveSlot } from '../domain/booking-slot';
 
 @Schema({ timestamps: true })
 export class Booking extends Document {
@@ -58,6 +59,27 @@ export class Booking extends Document {
 
   @Prop({ default: 'confirmed' })
   status: string;
+
+  // Derivado de date/time/professional.id/status (ver hook pre-validate).
+  // No se debe escribir desde la API.
+  @Prop({ type: String })
+  activeSlot?: string;
 }
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);
+
+// Garantía atómica contra doble reserva: un solo documento activo por
+// fecha+hora+profesional. Las canceladas no tienen activeSlot y quedan fuera.
+BookingSchema.index(
+  { activeSlot: 1 },
+  {
+    name: 'uniq_active_slot',
+    unique: true,
+    partialFilterExpression: { activeSlot: { $type: 'string' } },
+  },
+);
+
+BookingSchema.pre('validate', function (next) {
+  this.activeSlot = buildActiveSlot(this);
+  next();
+});

@@ -102,6 +102,19 @@ describe('BookingsService', () => {
       expect(mockGateway.notifyNewBooking).toHaveBeenCalledWith(mockBooking);
     });
 
+    it('debería rechazar la reserva que pierde la carrera contra otra concurrente (E11000)', async () => {
+      // El chequeo previo no ve la otra reserva (aún no persistida)...
+      mockBookingModel.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      // ...pero el índice único uniq_active_slot la rechaza al guardar.
+      mockSave.mockRejectedValueOnce({ code: 11000, keyPattern: { activeSlot: 1 } });
+      mockGateway.notifyNewBooking.mockClear();
+
+      await expect(service.create(mockBookingDto)).rejects.toThrow(
+        'Ya existe una reserva para Cesar Viloria el 2026-03-25 a las 10:00',
+      );
+      expect(mockGateway.notifyNewBooking).not.toHaveBeenCalled();
+    });
+
     it('debería lanzar error si falta fecha y hora', async () => {
       const dtoSinFecha = { ...mockBookingDto, date: '', time: '' };
 
@@ -248,10 +261,19 @@ describe('BookingsService', () => {
   });
 
   describe('update', () => {
-    it('debería actualizar una reserva exitosamente', async () => {
+    const buildDoc = (overrides = {}) => ({
+      ...mockBooking,
+      set: jest.fn(),
+      save: jest.fn(),
+      ...overrides,
+    });
+
+    it('debería actualizar con load + save para correr validadores y hooks', async () => {
       const updatedBooking = { ...mockBooking, time: '11:00' };
-      mockBookingModel.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(updatedBooking),
+      const doc = buildDoc();
+      doc.save.mockResolvedValue(updatedBooking);
+      mockBookingModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
       });
 
       const result = await service.update('507f1f77bcf86cd799439011', {
@@ -260,21 +282,46 @@ describe('BookingsService', () => {
       });
 
       expect(result).toEqual(updatedBooking);
-      expect(mockBookingModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        { ...mockBookingDto, time: '11:00' },
-        { new: true },
-      );
+      expect(mockBookingModel.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+      expect(doc.set).toHaveBeenCalledWith({ ...mockBookingDto, time: '11:00' });
+      expect(doc.save).toHaveBeenCalled();
     });
 
     it('debería retornar null si la reserva no existe', async () => {
-      mockBookingModel.findByIdAndUpdate.mockReturnValue({
+      mockBookingModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
 
       const result = await service.update('id-inexistente', mockBookingDto);
 
       expect(result).toBeNull();
+    });
+
+    it('debería rechazar reprogramar a un horario ocupado (E11000)', async () => {
+      const doc = buildDoc({ time: '11:00' });
+      doc.save.mockRejectedValue({ code: 11000 });
+      mockBookingModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
+      });
+
+      await expect(
+        service.update('507f1f77bcf86cd799439011', { ...mockBookingDto, time: '11:00' }),
+      ).rejects.toThrow('Ya existe una reserva para Cesar Viloria el 2026-03-25 a las 11:00');
+    });
+
+    it('debería traducir errores de validación de Mongoose', async () => {
+      const doc = buildDoc();
+      doc.save.mockRejectedValue({
+        name: 'ValidationError',
+        errors: { date: { message: 'date es requerido' } },
+      });
+      mockBookingModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
+      });
+
+      await expect(
+        service.update('507f1f77bcf86cd799439011', mockBookingDto),
+      ).rejects.toThrow('Error de validación: date es requerido');
     });
   });
 
@@ -314,6 +361,7 @@ describe('BookingsService', () => {
         date: '2026-03-25',
         time: '10:00',
         'professional.id': 'cesar-viloria',
+        status: { $ne: 'cancelled' },
       });
     });
 

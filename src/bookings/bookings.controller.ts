@@ -22,35 +22,7 @@ export class BookingsController {
     try {
       return await this.bookingsService.create(createBookingDto);
     } catch (error) {
-      // Log completo del error para debugging
-      console.error('Error al crear reserva:', {
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name,
-        error: error
-      });
-
-      // Si el error es un Error de validación de negocio, devolver 400
-      if (error?.message && (
-        error.message.includes('Ya existe una reserva') ||
-        error.message.includes('Ya tienes una reserva') ||
-        error.message.includes('es requerido') ||
-        error.message.includes('Error de validación')
-      )) {
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-      }
-
-      // Si es un HttpException, re-lanzarlo
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      // Para otros errores, devolver 500 con mensaje genérico
-      const errorMessage = error?.message || 'Error interno del servidor al procesar la reserva';
-      throw new HttpException(
-        errorMessage,
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      throw this.toHttpException(error, 'Error al crear reserva');
     }
   }
 
@@ -75,12 +47,45 @@ export class BookingsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBookingDto: CreateBookingDto) {
-    return this.bookingsService.update(id, updateBookingDto);
+  async update(@Param('id') id: string, @Body() updateBookingDto: CreateBookingDto) {
+    try {
+      return await this.bookingsService.update(id, updateBookingDto);
+    } catch (error) {
+      throw this.toHttpException(error, 'Error al actualizar reserva');
+    }
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.bookingsService.remove(id);
   }
-} 
+
+  private toHttpException(error: any, context: string): HttpException {
+    // Log completo del error para debugging
+    console.error(`${context}:`, {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      error: error
+    });
+
+    // Si el error es un Error de validación de negocio, devolver 400
+    if (error?.message && (
+      error.message.includes('Ya existe una reserva') ||
+      error.message.includes('Ya tienes una reserva') ||
+      error.message.includes('es requerido') ||
+      error.message.includes('Error de validación')
+    )) {
+      return new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+
+    // Si es un HttpException, re-lanzarlo
+    if (error instanceof HttpException) {
+      return error;
+    }
+
+    // Para otros errores, devolver 500 con mensaje genérico
+    const errorMessage = error?.message || 'Error interno del servidor al procesar la reserva';
+    return new HttpException(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+}

@@ -5,6 +5,7 @@ import { Booking } from './schemas/booking.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingsGateway } from './bookings.gateway';
 import { EmailService } from '../email/email.service';
+import { isDuplicateKeyError } from './domain/booking-slot';
 
 @Injectable()
 export class BookingsService {
@@ -63,13 +64,7 @@ export class BookingsService {
 
       return savedBooking;
     } catch (error) {
-      // Si es un error de validación de Mongoose, devolver mensaje más claro
-      if (error.name === 'ValidationError') {
-        const messages = Object.values(error.errors).map((e: any) => e.message).join(', ');
-        throw new Error(`Error de validación: ${messages}`);
-      }
-      // Re-lanzar otros errores
-      throw error;
+      throw this.toDomainError(error, createBookingDto);
     }
   }
 
@@ -81,10 +76,21 @@ export class BookingsService {
     return this.bookingModel.findById(id).exec();
   }
 
+  // Se usa load + save (no findByIdAndUpdate) para que corran validadores y el
+  // hook que recalcula activeSlot: así el índice único también protege
+  // reprogramaciones y reactivaciones de reservas canceladas.
   async update(id: string, updateBookingDto: CreateBookingDto): Promise<Booking | null> {
-    return this.bookingModel
-      .findByIdAndUpdate(id, updateBookingDto, { new: true })
-      .exec();
+    const booking = await this.bookingModel.findById(id).exec();
+    if (!booking) {
+      return null;
+    }
+
+    booking.set(updateBookingDto);
+    try {
+      return await booking.save();
+    } catch (error) {
+      throw this.toDomainError(error, booking);
+    }
   }
 
   async remove(id: string): Promise<Booking | null> {
@@ -96,6 +102,7 @@ export class BookingsService {
       date,
       time,
       'professional.id': professionalId,
+      status: { $ne: 'cancelled' },
     }).exec();
 
     return { available: !existingBooking };
@@ -127,5 +134,24 @@ export class BookingsService {
       totalRevenue: totalRevenue[0]?.total || 0,
       todayBookings,
     };
+  }
+
+  private toDomainError(
+    error: any,
+    booking: Pick<CreateBookingDto, 'date' | 'time' | 'professional'>,
+  ): Error {
+    // Carrera perdida contra otra reserva concurrente (web o bot): el índice
+    // único uniq_active_slot la rechazó aunque el chequeo previo pasara.
+    if (isDuplicateKeyError(error)) {
+      return new Error(
+        `Ya existe una reserva para ${booking.professional?.name} el ${booking.date} a las ${booking.time}`,
+      );
+    }
+    // Si es un error de validación de Mongoose, devolver mensaje más claro
+    if (error?.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((e: any) => e.message).join(', ');
+      return new Error(`Error de validación: ${messages}`);
+    }
+    return error;
   }
 }

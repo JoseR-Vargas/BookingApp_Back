@@ -52,7 +52,7 @@ async function main(): Promise<void> {
     try {
       // updateOne directo: no dispara hooks ni toca updatedAt.
       await Booking.collection.updateOne(
-        { _id: booking._id },
+        { _id: booking._id as mongoose.Types.ObjectId },
         { $set: { activeSlot: slot } },
       );
       updated++;

@@ -102,6 +102,38 @@ describe('BookingsService', () => {
       expect(mockGateway.notifyNewBooking).toHaveBeenCalledWith(mockBooking);
     });
 
+    it('debería registrar source web por defecto sin alterar el payload web', async () => {
+      await service.create(mockBookingDto);
+
+      expect(mockBookingModel).toHaveBeenCalledWith({
+        ...mockBookingDto,
+        source: 'web',
+      });
+    });
+
+    it('debería crear una reserva de WhatsApp con teléfono normalizado', async () => {
+      await service.create({
+        ...mockBookingDto,
+        source: 'whatsapp',
+        whatsappPhone: 'whatsapp:+5491122334455',
+      });
+
+      expect(mockBookingModel).toHaveBeenCalledWith({
+        ...mockBookingDto,
+        source: 'whatsapp',
+        whatsappPhone: '+5491122334455',
+      });
+    });
+
+    it('debería rechazar una reserva de WhatsApp sin teléfono sin persistir', async () => {
+      mockBookingModel.mockClear();
+
+      await expect(
+        service.create({ ...mockBookingDto, source: 'whatsapp' }),
+      ).rejects.toThrow('Teléfono de WhatsApp es requerido');
+      expect(mockBookingModel).not.toHaveBeenCalled();
+    });
+
     it('debería lanzar error si falta fecha y hora', async () => {
       const dtoSinFecha = { ...mockBookingDto, date: '', time: '' };
 

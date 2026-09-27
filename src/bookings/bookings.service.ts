@@ -5,6 +5,7 @@ import { Booking } from './schemas/booking.schema';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingsGateway } from './bookings.gateway';
 import { EmailService } from '../email/email.service';
+import { resolveBookingOrigin } from './domain/booking-origin';
 
 @Injectable()
 export class BookingsService {
@@ -27,6 +28,8 @@ export class BookingsService {
         throw new Error('Datos del cliente son requeridos');
       }
 
+      const origin = resolveBookingOrigin(createBookingDto);
+
       // Verificación mejorada con múltiples criterios para evitar duplicados
       const existingBooking = await this.bookingModel.findOne({
         date: createBookingDto.date,
@@ -43,7 +46,10 @@ export class BookingsService {
       // con diferentes profesionales en el mismo horario
       // (ej: puede reservar con Cesar y con Random a la misma hora)
 
-      const createdBooking = new this.bookingModel(createBookingDto);
+      const createdBooking = new this.bookingModel({
+        ...createBookingDto,
+        ...origin,
+      });
       const savedBooking = await createdBooking.save();
       
       // Emitir evento WebSocket cuando se crea una nueva reserva (no crítico si falla)

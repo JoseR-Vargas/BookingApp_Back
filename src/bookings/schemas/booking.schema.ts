@@ -1,5 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import {
+  BOOKING_SOURCES,
+  BookingSource,
+  DEFAULT_BOOKING_SOURCE,
+  E164_REGEX,
+} from '../domain/booking-origin';
 
 @Schema({ timestamps: true })
 export class Booking extends Document {
@@ -58,6 +64,24 @@ export class Booking extends Document {
 
   @Prop({ default: 'confirmed' })
   status: string;
+
+  @Prop({
+    type: String,
+    enum: BOOKING_SOURCES,
+    default: DEFAULT_BOOKING_SOURCE,
+    index: true,
+  })
+  source: BookingSource;
+
+  // Teléfono E.164 del chat de WhatsApp que originó la reserva.
+  @Prop({
+    type: String,
+    match: E164_REGEX,
+    required: function (this: Booking) {
+      return this.source === 'whatsapp';
+    },
+  })
+  whatsappPhone?: string;
 }
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);
